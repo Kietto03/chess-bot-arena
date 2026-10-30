@@ -13,7 +13,11 @@ export function patchPython(source) {
             'board': gs.board, 'ply': len(gs.moveLog), 'white': gs.whiteToMove,
             'over': gameOver, 'result': gameResult,
             'size': list(screen.get_size()), 'rect': list(LAYOUT.board),
-            'flipped': boardFlipped, 'mode': currentModeIndex
+            'flipped': boardFlipped != (multiplayerMode and networkConnected and multiplayerRole == 'client'), 'mode': currentModeIndex,
+            'moves': [m.getCode() for m in gs.moveLog],
+            'connected': networkConnected, 'caughtUp': caughtUp, 'role': multiplayerRole,
+            'prompt': pendingPrompt['kind'] if pendingPrompt else None,
+            'accept': list(promptRects()[1]), 'room': roomCode
         })`],
   ];
   for (const [before, after] of replacements) {

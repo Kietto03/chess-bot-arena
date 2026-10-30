@@ -64,3 +64,23 @@ npm run smoke
 ## Dependency
 
 Stockfish được tải từ gói npm, không cần cài binary hệ thống. Stockfish là GPLv3; xem giấy phép và mã nguồn tại https://github.com/nmrugg/stockfish.js nếu phân phối lại engine. Repo không chứa bản sao mã nguồn/assets của trang đích; gói game được tải lúc chạy.
+
+## Đấu online với người chơi
+
+Host tạo phòng trong Online Multiplayer và gửi mã 6 ký tự. Chạy:
+
+```sh
+node src/online.js OZYRKA
+```
+
+Bot vào với vai trò khách, cầm Đen; host cầm Trắng và đi trước. Runner đồng bộ lịch sử nước từ phòng, chỉ đi khi đến lượt Đen, kiểm tra bàn cờ và ghi PGN/log/video/trace trong thư mục `runs/*-online`. Phòng dùng chính kết nối mạng của game; bot không tự chấp nhận đề nghị hòa/đi lại. Ctrl+C để dừng.
+
+### Widget điều khiển
+
+```sh
+npm run online -- OZYRKA
+```
+
+Menu Stockfish nổi trực tiếp trên trang: kéo tiêu đề để di chuyển, nút − để thu gọn, bật/tạm dừng, sức mạnh 0–20 và thời gian suy nghĩ 100–3000 ms. Trạng thái và 30 nước gần nhất hiển thị trong menu; log đầy đủ vẫn lưu ra file. Tạm dừng hoặc đổi thiết lập trong lúc engine tính sẽ hủy áp dụng nước cũ; bot chỉ tính lại khi được bật. Widget chỉ hiện trong phiên Playwright, không sửa website công khai.
+
+Kiểm tra giao diện: `npm run test:widget` (cần Chromium).
