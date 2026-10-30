@@ -21,7 +21,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npx playwright install --with-deps chromium
+      - if: runner.os == 'Linux'
+        run: npx playwright install --with-deps chromium
+      - if: runner.os != 'Linux'
+        run: npx playwright install chromium
       - run: node scripts/launcher.js --setup-only
       - run: npm run test:widget
       - run: node scripts/launcher.js --help
