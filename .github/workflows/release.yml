@@ -1,0 +1,25 @@
+name: Package launchers
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Build source bundles with platform launchers
+        run: |
+          git archive --format=zip --prefix=chess-bot-arena/ -o chess-bot-arena-launchers.zip HEAD
+          git archive --format=tar.gz --prefix=chess-bot-arena/ -o chess-bot-arena-launchers.tar.gz HEAD
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" chess-bot-arena-launchers.zip chess-bot-arena-launchers.tar.gz --title "Chess Bot Arena $GITHUB_REF_NAME" --generate-notes

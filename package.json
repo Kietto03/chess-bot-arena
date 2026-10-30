@@ -1,20 +1,25 @@
 {
   "name": "chess-bot-arena",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "description": "Playwright + two Stockfish engines on a Pygbag chess website",
   "scripts": {
-    "start": "node src/run.js",
+    "start": "node scripts/launcher.js",
     "test": "node --test",
     "smoke": "node src/run.js --headless --max-plies=8 --think-ms=100 --delay-ms=100",
     "online": "node src/online.js",
-    "test:widget": "node scripts/widget-smoke.js"
+    "test:widget": "node scripts/widget-smoke.js",
+    "arena": "node src/run.js",
+    "setup": "node scripts/launcher.js --setup-only"
   },
   "dependencies": {
     "chess.js": "^1.4.0",
     "playwright": "^1.56.1",
     "stockfish": "^19.0.0",
     "tar-stream": "^3.1.7"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

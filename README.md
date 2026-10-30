@@ -1,86 +1,95 @@
-# Chess Bot Arena
+# ♞ Chess Bot Arena
 
-Hai tiến trình **Stockfish 19** đánh với nhau trên https://chess-playing-ai.vercel.app/ bằng **Playwright**. Mặc định mở Chromium để xem trực tiếp; mỗi lượt có khoảng nghỉ để theo dõi.
+Mở [Chess Playing AI](https://chess-playing-ai.vercel.app/) cùng **menu Stockfish nổi ngay trên game**. Dùng Windows, macOS hoặc Linux; chọn cho hai bot đấu nhau hoặc nhập mã phòng để bot cầm Đen đấu online.
 
-## Chạy nhanh
+## Tải và bật
 
-Yêu cầu Node.js 22+ và kết nối Internet (game tải Python/WASM từ CDN).
+1. Cài **[Node.js 22 trở lên](https://nodejs.org/)** một lần (kèm npm).
+2. Tải `chess-bot-arena-launchers.zip` từ **[Releases](https://github.com/Kietto03/chess-bot-arena/releases/latest)**, giải nén toàn bộ vào thư mục có quyền ghi.
+3. Mở launcher tương ứng:
+
+| Hệ điều hành | Cách chạy |
+|---|---|
+| Windows | Nhấp đúp `Start-Windows.cmd` |
+| macOS | Nhấp đúp `Start-macOS.command` |
+| Linux desktop | Trong terminal: `bash start-linux.sh` |
+
+4. Chọn **1** để vào phòng online rồi nhập mã 6 ký tự hoặc link `?room=ABC123`; chọn **2** để xem hai bot đấu.
+
+Lần đầu launcher tự chạy `npm ci` và tải Chromium đúng phiên bản. Những lần sau dùng lại thư viện và browser đã cài. Khi mã nguồn/lockfile đổi, launcher cài lại dependency. Cần Internet để tải game/Python/WASM. Đây là gói mã nguồn có launcher, **chưa phải ứng dụng độc lập chứa sẵn Node.js/browser**. Không cần cài Stockfish hệ thống.
+
+Với macOS, nếu file chưa có quyền chạy: `chmod +x Start-macOS.command`, hoặc dùng `bash Start-macOS.command`. Trên Linux cần môi trường desktop; nếu thiếu thư viện Chromium, chạy `npx playwright install-deps chromium` trong thư mục repo (có thể cần quyền quản trị). Chi tiết: [Playwright browsers](https://playwright.dev/docs/browsers).
+
+## Menu trong game
+
+- **Bật / tạm dừng bot**; nước đang tính sẽ không được áp dụng nếu vừa tạm dừng.
+- **Sức mạnh 0–20**, **thời gian suy nghĩ 100–3000 ms**; thay đổi được áp dụng cho lượt tính tiếp theo.
+- Trạng thái, nước vừa đi và log 30 nước gần nhất.
+- Kéo tiêu đề để di chuyển; nút **− / +** để thu gọn/mở rộng.
+
+Online: host tạo phòng trong **Online Multiplayer → Host** rồi gửi mã/link. Bot tham gia với vai trò khách, cầm **Đen**; host cầm **Trắng**, đi trước. Bot đọc lại lịch sử khi tham gia ván đang chơi. Bot không tự chấp nhận đề nghị hòa/đi lại. Kết thúc ván online vẫn giữ cửa sổ để host bắt đầu ván mới. Hai bot local tự dừng khi kết thúc hoặc đạt giới hạn nước.
+
+Menu chỉ hiện trong cửa sổ Chromium do launcher mở. Đóng cửa sổ hoặc Ctrl+C trong terminal để thoát. Giữ terminal mở trong lúc chơi. Các điều khiển menu không tác động đến bàn cờ; tránh tự đi quân cho bot khi bot đang chạy.
+
+## Dùng terminal / phát triển
 
 ```sh
-npm ci
-npx playwright install chromium
-npm start
+npm start                          # Launcher: cài dependency/browser, chọn chế độ
+npm run setup                      # Chỉ cài dependency/browser
+npm start -- --room=ABC123          # Mở phòng online ngay
+npm start -- --local                # Mở hai bot + widget ngay
+npm run online -- ABC123            # Online, bỏ bước setup
+npm run arena                      # Hai bot, bỏ bước setup
+npm run arena -- --white-skill=15 --black-skill=5 --think-ms=700 --delay-ms=1000 --max-plies=300
 ```
 
-Điều chỉnh sức mạnh và tốc độ:
-
-```sh
-npm start -- --white-skill=15 --black-skill=5 --think-ms=700 --delay-ms=1000 --max-plies=300
-```
-
-- `white-skill`, `black-skill`: 0–20, mặc định 10.
-- `think-ms`: thời gian suy nghĩ mỗi nước, mặc định 500 ms.
-- `delay-ms`: khoảng nghỉ sau nước đi, mặc định 600 ms.
-- `max-plies`: giới hạn số nửa nước, mặc định 300. Kết quả `*` nếu dừng trước khi kết thúc.
-- `--headless`: chạy không mở cửa sổ; vẫn lưu video.
-- `Ctrl+C`: dừng sau lượt hiện tại, hoàn tất log/video.
-
-Giữ bàn cờ cho bot điều khiển khi đang chạy; thao tác tay làm thay đổi ván đấu sẽ khiến kiểm tra đồng bộ dừng bot.
+CLI local: `--headless` để chạy ẩn; `--max-plies` mặc định 300 nửa nước; `--delay-ms` mặc định 600 ms. Sức mạnh CLI riêng mỗi bên được giữ đến khi người dùng tương tác menu; sau đó menu đặt sức mạnh chung cho hai bot.
 
 ## Log và xem lại
 
-Mỗi lần chạy tạo `runs/<UTC timestamp>/`:
+Mỗi phiên tạo `runs/<UTC timestamp>/` (online thêm hậu tố `-online`):
 
 | File | Nội dung |
 |---|---|
-| `events.jsonl` | Sự kiện khởi động, từng nước UCI/SAN/FEN, toàn bộ phản hồi UCI của hai engine, console trang và lỗi |
-| `game.pgn` | Biên bản cập nhật sau mỗi nước đã được xác nhận |
+| `events.jsonl` | Nước UCI/SAN/FEN, phản hồi engine, console và lỗi |
+| `game.pgn` | Biên bản ván đấu |
 | `latest.png` | Ảnh bàn cờ gần nhất |
-| `video/*.webm` | Video phiên trình duyệt, mở bằng trình duyệt hoặc VLC |
-| `trace.zip` | Playwright trace: screenshot, DOM và thao tác |
-| `error.png` | Ảnh khi gặp lỗi nếu trình duyệt còn hoạt động |
+| `video/*.webm` | Video, mở bằng trình duyệt hoặc VLC |
+| `trace.zip` | Playwright trace |
+| `error.png` | Ảnh lỗi nếu browser còn hoạt động |
 
 ```sh
 npx playwright show-trace runs/<timestamp>/trace.zip
 ```
 
-## Cách hoạt động
+## Cách hoạt động và giới hạn
 
-Trang đích là Pygame/Pygbag chạy trong canvas, không có DOM cho từng quân cờ. Runner chặn phản hồi `game.tar.gz` trong phiên Chromium, thêm đoạn Python xuất **trạng thái chỉ đọc** ra `window.__arena`, chọn sẵn **Local 2-Player** và đặt hai bên thành người chơi để tránh AI có sẵn tranh lượt. Thay đổi này chỉ tồn tại trong phiên trình duyệt.
+Game là Pygame/Pygbag trong canvas. Playwright chặn phản hồi `game.tar.gz` của phiên trình duyệt và thêm bridge Python xuất trạng thái chỉ đọc ra `window.__arena`. Local chọn Local 2-Player; online dùng kết nối phòng của game. Website công khai không bị sửa.
 
-Hai Stockfish riêng biệt nhận FEN từ chess.js và trả nước UCI. Playwright click ô xuất phát/đích theo kích thước canvas thực tế, xử lý lựa chọn phong cấp, rồi đối chiếu toàn bộ bàn cờ với chess.js trước khi xác nhận và lưu nước đi. Không gọi `makeMove` để áp nước trực tiếp vào game.
+Stockfish nhận FEN từ chess.js, trả nước UCI; Playwright click ô xuất phát/đích và popup phong cấp. Runner kiểm tra bàn cờ với chess.js, không gọi `makeMove` để áp nước trực tiếp. Bridge phụ thuộc cấu trúc Python của trang; nếu thay đổi điểm chèn sẽ dừng và ghi `Game source changed`. Không tự đoán nước khi mất đồng bộ.
 
-Bridge phụ thuộc cấu trúc Python của trang. Nếu tác giả đổi các điểm chèn, chương trình báo `Game source changed` trong log và dừng. Không tự đoán nước khi mất đồng bộ. Chưa có cơ chế tiếp tục ván bị gián đoạn.
+Bản đóng gói hỗ trợ nền tảng desktop được phiên bản Playwright trong lockfile hỗ trợ; không đảm bảo mọi bản Linux cũ. Log/video có thể chiếm nhiều dung lượng; xóa phiên cũ trong `runs/` khi cần. Gói phát hành không kèm dependency, game assets hoặc dữ liệu các ván của tác giả.
 
-## Kiểm thử
+## Kiểm thử và phát hành
 
 ```sh
 npm test
+npm run test:widget
 npm run smoke
 ```
 
-`npm test` kiểm tra UCI thực tế của Stockfish, nước hợp lệ và lỗi bridge khi nguồn không tương thích. `npm run smoke` chạy 8 nửa nước trên trang thật, tạo đủ log/PGN/video/trace. Đã chạy thành công ngày 30/10/2026; ảnh bàn cờ đã được kiểm tra. Kiểm thử ngắn này chưa bao phủ một ván hoàn chỉnh hoặc tất cả tình huống phong cấp/nhập thành/bắt tốt qua đường trên giao diện.
+Unit test chạy UCI Stockfish thực, kiểm tra nước hợp lệ, bridge và mã/link phòng. Widget test kiểm tra bật/tắt, slider, thu gọn và text an toàn trong Chromium. Smoke đi 8 nửa nước trên trang thật. GitHub Actions chạy unit + widget trên Windows, macOS và Ubuntu. Smoke trang thật chạy riêng để CI không phụ thuộc mạng của game. Chưa bao phủ tất cả tình huống phong cấp/nhập thành/bắt tốt qua đường trên giao diện.
+
+Push tag `v*` sẽ tự tạo GitHub Release kèm ZIP và TAR.GZ chứa source + cả ba launcher. TAR.GZ giữ quyền executable khi giải nén trên macOS/Linux.
+
+## Khắc phục sự cố
+
+- **Không tìm thấy node:** cài Node.js rồi mở lại terminal/launcher.
+- **Lỗi tải npm/Chromium/CDN:** kiểm tra Internet/proxy, thử lại; `npm run setup` để cài lại.
+- **Linux thiếu thư viện:** `npx playwright install-deps chromium`.
+- **Link không có phòng:** lấy link từ nút Copy link của game; `fbclid` là tham số Facebook, không phải mã phòng.
+- **Game source changed / lệch bàn cờ:** xem `events.jsonl`; cần cập nhật adapter nếu trang thay đổi.
 
 ## Dependency
 
-Stockfish được tải từ gói npm, không cần cài binary hệ thống. Stockfish là GPLv3; xem giấy phép và mã nguồn tại https://github.com/nmrugg/stockfish.js nếu phân phối lại engine. Repo không chứa bản sao mã nguồn/assets của trang đích; gói game được tải lúc chạy.
-
-## Đấu online với người chơi
-
-Host tạo phòng trong Online Multiplayer và gửi mã 6 ký tự. Chạy:
-
-```sh
-node src/online.js OZYRKA
-```
-
-Bot vào với vai trò khách, cầm Đen; host cầm Trắng và đi trước. Runner đồng bộ lịch sử nước từ phòng, chỉ đi khi đến lượt Đen, kiểm tra bàn cờ và ghi PGN/log/video/trace trong thư mục `runs/*-online`. Phòng dùng chính kết nối mạng của game; bot không tự chấp nhận đề nghị hòa/đi lại. Ctrl+C để dừng.
-
-### Widget điều khiển
-
-```sh
-npm run online -- OZYRKA
-```
-
-Menu Stockfish nổi trực tiếp trên trang: kéo tiêu đề để di chuyển, nút − để thu gọn, bật/tạm dừng, sức mạnh 0–20 và thời gian suy nghĩ 100–3000 ms. Trạng thái và 30 nước gần nhất hiển thị trong menu; log đầy đủ vẫn lưu ra file. Tạm dừng hoặc đổi thiết lập trong lúc engine tính sẽ hủy áp dụng nước cũ; bot chỉ tính lại khi được bật. Widget chỉ hiện trong phiên Playwright, không sửa website công khai.
-
-Kiểm tra giao diện: `npm run test:widget` (cần Chromium).
+Stockfish là GPLv3; xem [mã nguồn và giấy phép stockfish.js](https://github.com/nmrugg/stockfish.js) khi phân phối lại engine. Gói launcher tải engine qua npm và không chứa bản sao engine binary/WASM hay assets của website.

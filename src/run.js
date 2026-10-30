@@ -3,6 +3,7 @@ import { Chess } from 'chess.js';
 import { mkdir, writeFile, appendFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { patchArchive } from './bridge.js';
+import { installWidget, updateWidget } from './widget.js';
 import { Engine } from './engine.js';
 const args = new Map(process.argv.slice(2).map(arg => { const [key, ...v] = arg.replace(/^--/, '').split('='); return [key, v.join('=') || true]; }));
 function number(key, fallback, min, max) { const value = Number(args.get(key) ?? fallback); if (!Number.isInteger(value) || value < min || value > max) throw new Error(`Invalid --${key}: ${value}`); return value; }
@@ -37,18 +38,29 @@ try {
     } catch (error) { log({ type: 'bridge-error', message: error.message }); await route.abort(); }
   });
   await page.goto('https://chess-playing-ai.vercel.app/', { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await page.waitForFunction(() => typeof window.Module?.PyRun_SimpleString === 'function', { timeout: 180000 });
+  await page.waitForFunction(() => typeof window.Module?.PyRun_SimpleString === 'function', undefined, { timeout: 180000 });
   await page.locator('#canvas').click({ position: { x: 10, y: 10 }, force: true });
-  await page.waitForFunction(() => !!window.__arena, { timeout: 180000 });
+  await page.waitForFunction(() => !!window.__arena, undefined, { timeout: 180000 });
+  await page.evaluate(installWidget, { local: true, think, skill: 10 });
   const state = () => page.evaluate(() => JSON.parse(window.__arena));
-  const click = async (x, y, s) => { const box = await page.locator('#canvas').boundingBox(); if (!box) throw new Error('Canvas unavailable'); await page.mouse.click(box.x + x / s.size[0] * box.width, box.y + y / s.size[1] * box.height); await page.waitForTimeout(100); };
+  const click = async (x, y, s) => { const box = await page.locator('#canvas').boundingBox(); if (!box) throw new Error('Canvas unavailable'); await page.evaluate(() => { document.getElementById('stockfish-widget').style.visibility = 'hidden'; }); try { await page.mouse.click(box.x + x / s.size[0] * box.width, box.y + y / s.size[1] * box.height); } finally { await page.evaluate(() => { document.getElementById('stockfish-widget').style.visibility = ''; }); } await page.waitForTimeout(100); };
   log({ type: 'start', think, delay, max });
   console.log(`Watching two Stockfish bots. Logs: ${out}`);
-  for (let ply = 0; ply < max && !stopping && !chess.isGameOver(); ply++) {
+  while (chess.history().length < max && !stopping && !chess.isGameOver()) {
+    if (page.isClosed()) { stopping = true; break; }
+    const ply = chess.history().length;
+    const control = await page.evaluate(() => ({ ...window.__botControl }));
+    await updateWidget(page, { status: control.enabled ? 'Stockfish đang tính…' : 'Đã tạm dừng' });
+    if (!control.enabled) { await page.waitForTimeout(200); continue; }
     const s = await state();
     if (s.mode !== 1 || s.ply !== ply || s.white !== (chess.turn() === 'w') || JSON.stringify(s.board) !== JSON.stringify(boardFromChess())) throw new Error(`Board out of sync at ply ${ply}`);
     if (s.over) break;
-    const uci = await engines[chess.turn() === 'w' ? 0 : 1].move(chess.fen(), think);
+    const engine = engines[chess.turn() === 'w' ? 0 : 1];
+    // Keep per-side CLI skill until the user adjusts the widget.
+    if (control.revision > 0) engine.send(`setoption name Skill Level value ${control.skill}`);
+    const uci = await engine.move(chess.fen(), control.think);
+    const freshControl = await page.evaluate(() => ({ ...window.__botControl }));
+    if (!freshControl.enabled || freshControl.revision !== control.revision) continue;
     const move = chess.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] });
     if (!move) throw new Error(`Illegal engine move ${uci}`);
     const point = square => { let col = square.charCodeAt(0) - 97, row = 8 - Number(square[1]); if (s.flipped) { col = 7 - col; row = 7 - row; } return [s.rect[0] + (col + .5) * s.rect[2] / 8, s.rect[1] + (row + .5) * s.rect[3] / 8]; };
@@ -58,6 +70,7 @@ try {
     const after = await state();
     if (JSON.stringify(after.board) !== JSON.stringify(boardFromChess())) throw new Error(`Move not confirmed: ${uci}`);
     log({ type: 'move', ply: ply + 1, uci, san: move.san, fen: chess.fen() });
+    await updateWidget(page, { status: 'Đã đi · Chờ lượt tiếp', last: `${move.color === 'w' ? 'Trắng' : 'Đen'}: ${move.san}`, entry: `${ply + 1}. ${move.san} (${uci})` });
     console.log(`${ply + 1}. ${move.color}: ${move.san} (${uci})`);
     await writeFile(resolve(out, 'game.pgn'), chess.pgn());
     await page.screenshot({ path: resolve(out, 'latest.png') });
@@ -67,8 +80,11 @@ try {
   chess.header('Result', result);
   log({ type: 'finish', result, reason: stopping ? 'signal' : chess.isGameOver() ? 'game-over' : 'limit-or-site-ended', plies: chess.history().length });
 } catch (error) {
-  failed = true; log({ type: 'error', message: error.stack }); console.error(error);
-  if (page && !page.isClosed()) await page.screenshot({ path: resolve(out, 'error.png') }).catch(() => {});
+  if (stopping || page?.isClosed()) log({ type: 'stopped', reason: 'User closed browser or stopped runner' });
+  else {
+    failed = true; log({ type: 'error', message: error.stack }); console.error(error);
+    if (page && !page.isClosed()) await page.screenshot({ path: resolve(out, 'error.png') }).catch(() => {});
+  }
 } finally {
   for (const engine of engines) engine.close();
   await writeFile(resolve(out, 'game.pgn'), chess.pgn());

@@ -1,0 +1,18 @@
+CHESS BOT ARENA
+==============
+1. Install Node.js 22 or newer (includes npm): https://nodejs.org/
+2. Extract this entire folder before opening a launcher.
+3. Windows: double-click Start-Windows.cmd
+   macOS: double-click Start-macOS.command (or bash Start-macOS.command)
+   Linux desktop: run bash start-linux.sh in a terminal
+4. Select 1 for online (enter a 6-character room code), or 2 for two bots.
+
+The launcher installs npm dependencies and Chromium on first use.
+Internet is required. Keep the terminal open while playing.
+The floating menu opens inside the game browser automatically.
+Close the browser or press Ctrl+C to exit.
+
+Linux missing libraries: npx playwright install-deps chromium
+macOS execute permission: chmod +x Start-macOS.command
+
+Full Vietnamese guide, logs, troubleshooting: README.md

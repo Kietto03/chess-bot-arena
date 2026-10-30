@@ -80,5 +80,5 @@ try {
     await page.waitForFunction(({ ply, uci }) => { const s = JSON.parse(window.__arena); return s.moves[ply] === uci; }, { ply: s.ply, uci }, { timeout: 15000 });
     log({ type: 'bot-move', uci, san: move.san }); console.log(`Bot Black: ${move.san} (${uci})`);
   }
-} catch (error) { if (page && !page.isClosed()) await updateWidget(page, { status: `Lỗi: ${error.message}` }).catch(() => {}); console.error(error); log({ type: 'error', message: error.stack }); process.exitCode = 1; if (page && !page.isClosed()) await page.screenshot({ path: resolve(out, 'error.png') }).catch(() => {}); }
+} catch (error) { if (stop || page?.isClosed()) { log({ type: 'stopped', reason: 'User closed browser or stopped runner' }); } else { if (page && !page.isClosed()) await updateWidget(page, { status: `Lỗi: ${error.message}` }).catch(() => {}); console.error(error); log({ type: 'error', message: error.stack }); process.exitCode = 1; if (page && !page.isClosed()) await page.screenshot({ path: resolve(out, 'error.png') }).catch(() => {}); } }
 finally { engine.close(); if (context) { await context.tracing.stop({ path: resolve(out, 'trace.zip') }).catch(() => {}); await context.close(); } if (browser) await browser.close(); await writes; }

@@ -1,4 +1,6 @@
 import { chromium } from 'playwright';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import { installWidget } from '../src/widget.js';
 const browser = await chromium.launch();
@@ -19,6 +21,6 @@ try {
   await page.getByRole('button', { name: 'Thu gọn' }).click();
   await page.evaluate(() => window.__botWidgetUpdate({ status: 'Chờ Trắng đi…', last: 'Nước 2: e7e5', entry: '<script>unsafe</script>' }));
   assert.equal(await page.locator('#stockfish-widget').locator('#history').textContent(), '<script>unsafe</script>');
-  await page.screenshot({ path: '/tmp/chess-widget-preview.png' });
+  await page.screenshot({ path: join(tmpdir(), 'chess-widget-preview.png') });
   console.log('Widget controls: passed');
 } finally { await browser.close(); }

@@ -1,5 +1,5 @@
 // Runs inside the game page. Shadow DOM keeps the game and widget styles isolated.
-export function installWidget({ room = '', enabled = true, skill = 10, think = 700 } = {}) {
+export function installWidget({ room = '', enabled = true, skill = 10, think = 700, local = false } = {}) {
   if (document.getElementById('stockfish-widget')) return;
   const control = window.__botControl = { enabled, skill, think, revision: 0 };
   const host = document.createElement('div');
@@ -28,6 +28,7 @@ export function installWidget({ room = '', enabled = true, skill = 10, think = 7
   for (const type of ['keydown', 'keyup', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click', 'wheel']) root.addEventListener(type, event => event.stopPropagation());
   document.body.append(host);
   const get = id => root.getElementById(id);
+  if (local) root.querySelector('.badge b').textContent = '● HAI BOT';
   get('room').textContent = room ? `PHÒNG ${room}` : 'LOCAL ARENA';
   const render = () => {
     get('toggle').textContent = control.enabled ? 'Ⅱ  Tạm dừng bot' : '▶  Bật bot';
