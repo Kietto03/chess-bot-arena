@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, realpathSync } from 'node:fs';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -59,6 +59,6 @@ async function main() {
   console.log('Đang mở game. Đóng cửa sổ game hoặc Ctrl+C để thoát.');
   await command(process.execPath, target === 'local' ? ['src/run.js'] : ['src/online.js', target]);
 }
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch(error => { console.error(`\nKhông khởi động được: ${error.message}\nXem README.md → Khắc phục sự cố.`); process.exitCode = 1; });
 }
